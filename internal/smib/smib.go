@@ -48,10 +48,7 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 			return fmt.Errorf("failed to get user info: %s", err)
 		}
 
-		_, _, err = s.slack.PostMessage(message.Channel, slack.MsgOptionText(fmt.Sprint("hi ", user.Name), false))
-		if err != nil {
-			return fmt.Errorf("failed to post message: %s", err)
-		}
+		s.slack.SendMessage(s.slack.NewOutgoingMessage(fmt.Sprint("hi ", user.Name), message.Channel))
 	}
 	return nil
 }
