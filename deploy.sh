@@ -2,7 +2,7 @@
 
 set -e
 set +x
-echo -e $DEPLOY_KEY > ~/.ssh/id_deploy
+echo -e $DEPLOY_KEY | base64 -d > ~/.ssh/id_deploy
 chmod 600 ~/.ssh/id_deploy
 set -x
 
