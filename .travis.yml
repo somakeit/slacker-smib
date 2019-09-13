@@ -9,7 +9,7 @@ install:
 
 script:
 - go test -v ./...
-- GOOS=linux GOARCH=arm GOARM=5 go build cmd/smib/smib
+- GOOS=linux GOARCH=arm GOARM=5 go build cmd/smib/smib.go
 
 deploy:
   provider: script
