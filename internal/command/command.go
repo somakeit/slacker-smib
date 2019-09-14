@@ -54,6 +54,7 @@ func (c *Command) Run(command, user, channel, args string) (io.Reader, error) {
 	}
 
 	cmd := exec.Command(filepath.Join(c.commandDir, commands[0]), user, channel, user, args)
+	cmd.Dir = c.commandDir
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
