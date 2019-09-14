@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -22,9 +23,9 @@ func New(commandDir string) *Command {
 	return &c
 }
 
-// Run takes a command and if it exists in the command diractory and is valid, runs it and returns
-// the output.
-func (c *Command) Run(command, user, channel, args string) ([]byte, error) {
+// Run takes a command and if it exists in the command diractory and is valid, runs it and
+// streams the output
+func (c *Command) Run(command, user, channel, args string) (io.Reader, error) {
 	files, err := ioutil.ReadDir(c.commandDir)
 	if err != nil {
 		return nil, fmt.Errorf("error listing command directory '%s': %s", c.commandDir, err)
@@ -57,17 +58,14 @@ func (c *Command) Run(command, user, channel, args string) ([]byte, error) {
 		return nil, err
 	}
 	cmd.Stderr = os.Stderr
+
 	err = cmd.Start()
 	if err != nil {
 		return nil, fmt.Errorf("failed to start command: %s", err)
 	}
-	defer cmd.Wait()
+	go cmd.Wait()
 
-	output, err := ioutil.ReadAll(stdout)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read command output: %s", err)
-	}
-	return output, nil
+	return stdout, nil
 }
 
 type NotFoundError string

@@ -1,6 +1,7 @@
 package smib
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"log"
@@ -77,7 +78,16 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 			return err
 		}
 
-		s.slack.SendMessage(s.slack.NewOutgoingMessage(string(output), message.Channel))
+		reader := bufio.NewReader(output)
+		for {
+			out, err := reader.ReadString('\n')
+			if len(out) > 0 {
+				s.slack.SendMessage(s.slack.NewOutgoingMessage(out, message.Channel))
+			}
+			if err != nil {
+				break
+			}
+		}
 	}
 	return nil
 }
