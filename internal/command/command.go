@@ -93,5 +93,5 @@ func (n NotUniqueError) Commands() string {
 	for _, cmd := range n.commands {
 		out = out + strings.SplitN(cmd, ".", 2)[0] + " "
 	}
-	return out
+	return strings.TrimSuffix(out, " ")
 }
