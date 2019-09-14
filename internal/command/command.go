@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -63,7 +64,12 @@ func (c *Command) Run(command, user, channel, args string) (io.Reader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to start command: %s", err)
 	}
-	go cmd.Wait()
+	go func() {
+		err := cmd.Wait()
+		if err != nil {
+			log.Print(fmt.Sprintf("Command %s failed: %s", command, err))
+		}
+	}()
 
 	return stdout, nil
 }
