@@ -53,6 +53,7 @@ func (c *Command) Run(command, user, channel, args string) (io.Reader, error) {
 		}
 	}
 
+	log.Print(fmt.Sprintf("Command '%s' run in '%s' by '%s' with args '%s'", commands[0], channel, user, args))
 	cmd := exec.Command(filepath.Join(c.commandDir, commands[0]), user, channel, user, args)
 	cmd.Dir = c.commandDir
 	stdout, err := cmd.StdoutPipe()
@@ -63,12 +64,12 @@ func (c *Command) Run(command, user, channel, args string) (io.Reader, error) {
 
 	err = cmd.Start()
 	if err != nil {
-		return nil, fmt.Errorf("failed to start command: %s", err)
+		return nil, fmt.Errorf("failed to start command '%s': %s", commands[0], err)
 	}
 	go func() {
 		err := cmd.Wait()
 		if err != nil {
-			log.Print(fmt.Sprintf("Command %s failed: %s", command, err))
+			log.Print(fmt.Sprintf("Command %s failed: %s", commands[0], err))
 		}
 	}()
 
