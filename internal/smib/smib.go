@@ -73,8 +73,22 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 			channel.Name,
 			args,
 		)
-		// TODO handle command not found etc.
-		if err != nil {
+		switch err := err.(type) {
+		case nil:
+			break
+		case command.NotFoundError:
+			s.slack.SendMessage(s.slack.NewOutgoingMessage(
+				fmt.Sprintf("Sorry %s, I don't have a %s command.", user.Name, cmd),
+				message.Channel,
+			))
+			return nil
+		case command.NotUniqueError:
+			s.slack.SendMessage(s.slack.NewOutgoingMessage(
+				fmt.Sprintf("Sorry %s, that wasn't unique, try one of: %s", user.Name, err.Commands()),
+				message.Channel,
+			))
+			return nil
+		default:
 			return err
 		}
 
