@@ -9,10 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/somakeit/slacker-smib/internal/command"
-
 	"github.com/nlopes/slack"
 	"github.com/nlopes/slack/slacktest"
+	"github.com/somakeit/slacker-smib/internal/command"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
