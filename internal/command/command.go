@@ -49,7 +49,7 @@ func (c *Command) Run(command, user, channel, args string) (io.Reader, error) {
 	if len(commands) > 1 {
 		return nil, NotUniqueError{
 			text:     fmt.Sprintf("command '%s' was not unique", command),
-			commands: commands,
+			Commands: commands,
 		}
 	}
 
@@ -82,15 +82,15 @@ func (n NotFoundError) Error() string { return string(n) }
 
 type NotUniqueError struct {
 	text     string
-	commands []string
+	Commands []string
 }
 
 func (n NotUniqueError) Error() string { return n.text }
 
-// Commands returns the conflicting commands as a printable string
-func (n NotUniqueError) Commands() string {
+// GetCommands returns the conflicting commands as a printable string
+func (n NotUniqueError) GetCommands() string {
 	out := ""
-	for _, cmd := range n.commands {
+	for _, cmd := range n.Commands {
 		out = out + strings.SplitN(cmd, ".", 2)[0] + " "
 	}
 	return strings.TrimSuffix(out, " ")

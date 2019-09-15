@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"strings"
 
@@ -11,18 +12,22 @@ import (
 	"github.com/somakeit/slacker-smib/internal/command"
 )
 
+type commandRunner interface {
+	Run(cmd, user, channel, args string) (io.Reader, error)
+}
+
 // SMIB is the bot
 type SMIB struct {
 	slack *slack.RTM
-	cmd   *command.Command
+	cmd   commandRunner
 }
 
 // New returns a new SMIB, client must be a pointer to a valid slack.Client and commandRunner
 // must be a valid Smob command runner.
-func New(client *slack.Client, commandRunner *command.Command) *SMIB {
+func New(client *slack.Client, cmd commandRunner) *SMIB {
 	s := SMIB{
 		slack: client.NewRTM(),
-		cmd:   commandRunner,
+		cmd:   cmd,
 	}
 	return &s
 }
@@ -33,9 +38,9 @@ func (s *SMIB) ListenAndRobot() error {
 
 	for event := range s.slack.IncomingEvents {
 		var err error
-		switch event := event.Data.(type) {
+		switch data := event.Data.(type) {
 		case *slack.MessageEvent:
-			err = s.handleMessage(event)
+			err = s.handleMessage(data)
 		}
 		if err != nil {
 			log.Print("Faled to handle message: ", err)
@@ -87,11 +92,15 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 		return nil
 	case command.NotUniqueError:
 		s.slack.SendMessage(s.slack.NewOutgoingMessage(
-			fmt.Sprintf("Sorry %s, that wasn't unique, try one of: %s", user.Name, err.Commands()),
+			fmt.Sprintf("Sorry %s, that wasn't unique, try one of: %s", user.Name, err.GetCommands()),
 			message.Channel,
 		))
 		return nil
 	default:
+		s.slack.SendMessage(s.slack.NewOutgoingMessage(
+			fmt.Sprintf("Sorry %s, %s is on fire.", user.Name, cmd),
+			message.Channel,
+		))
 		return err
 	}
 

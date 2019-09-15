@@ -65,7 +65,7 @@ func TestCommand_Run(t *testing.T) {
 			want:       []byte{},
 			wantErr: NotUniqueError{
 				text:     "command 'command' was not unique",
-				commands: []string{"commandone.sh", "commandtwo.sh"},
+				Commands: []string{"commandone.sh", "commandtwo.sh"},
 			},
 		},
 		{
@@ -132,7 +132,7 @@ func TestCommand_Run(t *testing.T) {
 				assert.Contains(t, err.Error(), tt.wantErr.Error())
 			case NotUniqueError:
 				assert.IsType(t, wantErr, err)
-				assert.Equal(t, wantErr.commands, err.(NotUniqueError).commands)
+				assert.Equal(t, wantErr.Commands, err.(NotUniqueError).Commands)
 				assert.Contains(t, err.Error(), tt.wantErr.Error())
 			default:
 				assert.Contains(t, err.Error(), tt.wantErr.Error())
@@ -148,7 +148,7 @@ func TestCommand_Run(t *testing.T) {
 	}
 }
 
-func TestNotUniqueError_Commands(t *testing.T) {
+func TestNotUniqueError_GetCommands(t *testing.T) {
 	tests := []struct {
 		name     string
 		commands []string
@@ -174,9 +174,9 @@ func TestNotUniqueError_Commands(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			n := NotUniqueError{
 				text:     tt.name,
-				commands: tt.commands,
+				Commands: tt.commands,
 			}
-			if got := n.Commands(); got != tt.want {
+			if got := n.GetCommands(); got != tt.want {
 				t.Errorf("NotUniqueError.Commands() = %v, want %v", got, tt.want)
 			}
 		})
