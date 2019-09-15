@@ -37,12 +37,10 @@ func (s *SMIB) ListenAndRobot() error {
 	go s.slack.ManageConnection()
 
 	for event := range s.slack.IncomingEvents {
-		var err error
 		switch data := event.Data.(type) {
 		case *slack.MessageEvent:
 			go func() {
-				err = s.handleMessage(data)
-				if err != nil {
+				if err := s.handleMessage(data); err != nil {
 					log.Print("Faled to handle message: ", err)
 				}
 			}()
