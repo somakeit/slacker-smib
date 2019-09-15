@@ -122,26 +122,30 @@ func TestCommand_Run(t *testing.T) {
 				commandDir: tt.commandDir,
 			}
 
-			r, err := c.Run(tt.command, tt.user, tt.channel, tt.args)
+			r, outErr := c.Run(tt.command, tt.user, tt.channel, tt.args)
 
 			switch wantErr := tt.wantErr.(type) {
 			case nil:
-				assert.NoError(t, err)
+				assert.NoError(t, outErr)
 			case NotFoundError:
-				assert.IsType(t, wantErr, err)
-				assert.Contains(t, err.Error(), tt.wantErr.Error())
+				assert.IsType(t, wantErr, outErr)
+				assert.Contains(t, outErr.Error(), tt.wantErr.Error())
 			case NotUniqueError:
-				assert.IsType(t, wantErr, err)
-				assert.Equal(t, wantErr.Commands, err.(NotUniqueError).Commands)
-				assert.Contains(t, err.Error(), tt.wantErr.Error())
+				assert.IsType(t, wantErr, outErr)
+				assert.Equal(t, wantErr.Commands, outErr.(NotUniqueError).Commands)
+				assert.Contains(t, outErr.Error(), tt.wantErr.Error())
 			default:
-				assert.Contains(t, err.Error(), tt.wantErr.Error())
+				assert.Contains(t, outErr.Error(), tt.wantErr.Error())
 			}
 
 			output := []byte{}
 			if r != nil {
+				var err error
 				output, err = ioutil.ReadAll(r)
 				require.NoError(t, err)
+			}
+			if outErr == nil {
+				r.Close()
 			}
 			assert.Equal(t, tt.want, output)
 		})

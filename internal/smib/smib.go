@@ -13,7 +13,7 @@ import (
 )
 
 type commandRunner interface {
-	Run(cmd, user, channel, args string) (io.Reader, error)
+	Run(cmd, user, channel, args string) (io.ReadCloser, error)
 }
 
 // SMIB is the bot
@@ -110,10 +110,18 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 		if len(out) > 0 {
 			s.slack.SendMessage(s.slack.NewOutgoingMessage(out, message.Channel))
 		}
-		if err != nil {
-			break
+		switch err {
+		case nil:
+			continue
+		case io.EOF:
+			output.Close()
+			return nil
+		default:
+			s.slack.SendMessage(s.slack.NewOutgoingMessage(
+				fmt.Sprintf("Sorry %s, %s exploded or something.", user.Name, cmd),
+				message.Channel,
+			))
+			return fmt.Errorf("failed to read output from command: %s", err)
 		}
 	}
-
-	return nil
 }

@@ -25,8 +25,8 @@ func New(commandDir string) *Command {
 }
 
 // Run takes a command and if it exists in the command diractory and is valid, runs it and
-// streams the output
-func (c *Command) Run(command, user, channel, args string) (io.Reader, error) {
+// streams the output. The caller must close the output ReadCloser if err was nil.
+func (c *Command) Run(command, user, channel, args string) (io.ReadCloser, error) {
 	files, err := ioutil.ReadDir(c.commandDir)
 	if err != nil {
 		return nil, fmt.Errorf("error listing command directory '%s': %s", c.commandDir, err)
@@ -66,14 +66,35 @@ func (c *Command) Run(command, user, channel, args string) (io.Reader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to start command '%s': %s", commands[0], err)
 	}
+
+	done := make(chan struct{})
 	go func() {
+		<-done
 		err := cmd.Wait()
 		if err != nil {
 			log.Print(fmt.Sprintf("Command %s failed: %s", commands[0], err))
 		}
 	}()
 
-	return stdout, nil
+	return output{
+		done:   done,
+		reader: stdout,
+	}, nil
+}
+
+// output is an io.ReadCloser that lets us only wait for the command to finish after the caller
+// has finished reading. cmd.Wait() will close the Srdout io.ReadCloser for us.
+type output struct {
+	done   chan struct{}
+	reader io.Reader
+}
+
+func (o output) Read(b []byte) (int, error) {
+	return o.reader.Read(b)
+}
+func (o output) Close() error {
+	close(o.done)
+	return nil
 }
 
 type NotFoundError string
