@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/somakeit/slacker-smib.svg?branch=master)](https://travis-ci.org/somakeit/slacker-smib)
+[![Coverage Status](https://coveralls.io/repos/github/somakeit/slacker-smib/badge.svg)](https://coveralls.io/github/somakeit/slacker-smib)
 
 slacker-smib
 ============
