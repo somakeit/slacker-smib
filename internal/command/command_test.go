@@ -87,6 +87,15 @@ func TestCommand_Run(t *testing.T) {
 			wantErr:    nil,
 		},
 		{
+			name:       "run a non-unique command explicitly",
+			commandDir: mustAbs("fixtures"),
+			command:    "sub",
+			user:       "bob",
+			channel:    "general",
+			want:       []byte("We all live in a yellow\n"),
+			wantErr:    nil,
+		},
+		{
 			name:       "run the readme",
 			commandDir: mustAbs("fixtures"),
 			command:    "README",

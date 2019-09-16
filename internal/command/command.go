@@ -39,7 +39,14 @@ func (c *Command) Run(command, user, channel, args string) (io.ReadCloser, error
 			continue
 		}
 
-		if strings.HasPrefix(strings.SplitN(file.Name(), ".", 1)[0], command) {
+		fileCmd := strings.SplitN(file.Name(), ".", 2)[0]
+
+		if fileCmd == command {
+			commands = []string{file.Name()}
+			break
+		}
+
+		if strings.HasPrefix(fileCmd, command) {
 			commands = append(commands, file.Name())
 		}
 	}
