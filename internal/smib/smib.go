@@ -55,18 +55,22 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 		return nil
 	}
 
-	s.slack.SendMessage(s.slack.NewTypingMessage(message.Channel))
-
-	user, err := s.slack.GetUserInfo(message.User)
-	if err != nil {
-		return fmt.Errorf("failed to get user info: %s", err)
-	}
-
 	parts := strings.SplitN(message.Text, " ", 2)
 	cmd := strings.TrimPrefix(parts[0], "?")
 	args := ""
 	if len(parts) > 1 {
 		args = parts[1]
+	}
+
+	if len(cmd) < 1 {
+		return nil
+	}
+
+	s.slack.SendMessage(s.slack.NewTypingMessage(message.Channel))
+
+	user, err := s.slack.GetUserInfo(message.User)
+	if err != nil {
+		return fmt.Errorf("failed to get user info: %s", err)
 	}
 
 	channel, err := s.slack.GetChannelInfo(message.Channel)

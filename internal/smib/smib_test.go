@@ -158,6 +158,16 @@ func TestSMIB_handleMessage(t *testing.T) {
 			shouldClose: true,
 		},
 		{
+			name: "zero length command",
+			message: &slack.MessageEvent{
+				Msg: slack.Msg{
+					Text:    "? webcam",
+					User:    "Xspengler",
+					Channel: "Xgeneral",
+				},
+			},
+		},
+		{
 			name: "multi line command",
 			message: &slack.MessageEvent{
 				Msg: slack.Msg{
