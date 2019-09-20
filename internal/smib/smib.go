@@ -75,10 +75,10 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 		return fmt.Errorf("failed to get user info: %s", err)
 	}
 
+	channelName := "null" // If GetChannelInfo fails, we're probablt in an IM or Group
 	channel, err := s.slack.GetChannelInfo(message.Channel)
-	if err != nil {
-		// TODO handle DMs
-		return fmt.Errorf("failed to get channel info: %s", err)
+	if err == nil {
+		channelName = channel.Name
 	}
 
 	var msgOpts []slack.RTMsgOption
@@ -89,7 +89,7 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 	output, err := s.cmd.Run(
 		cmd,
 		user.Name,
-		channel.Name,
+		channelName,
 		args,
 	)
 	switch err := err.(type) {

@@ -120,6 +120,7 @@ func TestSMIB_handleMessage(t *testing.T) {
 		name         string
 		message      *slack.MessageEvent
 		primeCommand func(*testing.T, *mockCommand, func(io.Reader) io.ReadCloser)
+		chanInfoErr  bool
 		wantMessage  []msgThread
 		wantErr      string
 		shouldClose  bool
@@ -273,6 +274,23 @@ func TestSMIB_handleMessage(t *testing.T) {
 			wantMessage: []msgThread{{"computer says yes", "2.2"}},
 			shouldClose: true,
 		},
+		{
+			name: "a command in a dm",
+			message: &slack.MessageEvent{
+				Msg: slack.Msg{
+					Text:    "?command y0",
+					User:    "Xspengler",
+					Channel: "Xgeneral",
+				},
+			},
+			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
+				cmdReader := c(bytes.NewReader([]byte("computer says yes")))
+				m.On("Run", "command", "spengler", "null", "y0").Return(cmdReader, nil).Once()
+			},
+			wantMessage: []msgThread{{"computer says yes", ""}},
+			shouldClose: true,
+			chanInfoErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -282,6 +300,10 @@ func TestSMIB_handleMessage(t *testing.T) {
 			testServer.Handle("/channels.info", func(w http.ResponseWriter, r *http.Request) {
 				assert.NoError(t, r.ParseForm())
 				assert.Equal(t, "Xgeneral", r.Form["channel"][0], "Need to paramaterise this mock")
+				if tt.chanInfoErr {
+					w.WriteHeader(404)
+					return
+				}
 				resp, _ := json.Marshal(struct{ Channel slack.Channel }{slack.Channel{GroupConversation: slack.GroupConversation{Name: "general"}}})
 				w.Write(resp)
 			})
