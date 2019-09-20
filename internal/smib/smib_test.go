@@ -113,11 +113,14 @@ func TestListenAndRobot(t *testing.T) {
 }
 
 func TestSMIB_handleMessage(t *testing.T) {
+	type msgThread struct {
+		text, threadTS string
+	}
 	tests := []struct {
 		name         string
 		message      *slack.MessageEvent
 		primeCommand func(*testing.T, *mockCommand, func(io.Reader) io.ReadCloser)
-		wantMessage  []string
+		wantMessage  []msgThread
 		wantErr      string
 		shouldClose  bool
 	}{
@@ -154,7 +157,7 @@ func TestSMIB_handleMessage(t *testing.T) {
 				cmdReader := c(bytes.NewReader([]byte("computer says yes")))
 				m.On("Run", "command", "spengler", "general", "y0").Return(cmdReader, nil).Once()
 			},
-			wantMessage: []string{"computer says yes"},
+			wantMessage: []msgThread{{"computer says yes", ""}},
 			shouldClose: true,
 		},
 		{
@@ -180,31 +183,33 @@ func TestSMIB_handleMessage(t *testing.T) {
 				cmdReader := c(bytes.NewReader([]byte("3\n2\n1\n")))
 				m.On("Run", "countdown", "spengler", "general", "").Return(cmdReader, nil).Once()
 			},
-			wantMessage: []string{"3\n", "2\n", "1\n"},
+			wantMessage: []msgThread{{"3\n", ""}, {"2\n", ""}, {"1\n", ""}},
 			shouldClose: true,
 		},
 		{
 			name: "unknown command",
 			message: &slack.MessageEvent{
 				Msg: slack.Msg{
-					Text:    "?badcommand",
-					User:    "Xspengler",
-					Channel: "Xgeneral",
+					Text:            "?badcommand",
+					User:            "Xspengler",
+					Channel:         "Xgeneral",
+					ThreadTimestamp: "3.3",
 				},
 			},
 			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
 				empty := c(bytes.NewReader(nil))
 				m.On("Run", "badcommand", "spengler", "general", "").Return(empty, command.NotFoundError("")).Once()
 			},
-			wantMessage: []string{"Sorry spengler, I don't have a badcommand command."},
+			wantMessage: []msgThread{{"Sorry spengler, I don't have a badcommand command.", "3.3"}},
 		},
 		{
 			name: "nonunique command",
 			message: &slack.MessageEvent{
 				Msg: slack.Msg{
-					Text:    "?c",
-					User:    "Xspengler",
-					Channel: "Xgeneral",
+					Text:            "?c",
+					User:            "Xspengler",
+					Channel:         "Xgeneral",
+					ThreadTimestamp: "4.4",
 				},
 			},
 			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
@@ -216,38 +221,57 @@ func TestSMIB_handleMessage(t *testing.T) {
 					},
 				).Once()
 			},
-			wantMessage: []string{"Sorry spengler, that wasn't unique, try one of: commands countdown"},
+			wantMessage: []msgThread{{"Sorry spengler, that wasn't unique, try one of: commands countdown", "4.4"}},
 		},
 		{
 			name: "error running command",
 			message: &slack.MessageEvent{
 				Msg: slack.Msg{
-					Text:    "?crash",
-					User:    "Xspengler",
-					Channel: "Xgeneral",
+					Text:            "?crash",
+					User:            "Xspengler",
+					Channel:         "Xgeneral",
+					ThreadTimestamp: "5.5",
 				},
 			},
 			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
 				empty := c(bytes.NewReader(nil))
 				m.On("Run", "crash", "spengler", "general", "").Return(empty, errors.New("oops")).Once()
 			},
-			wantMessage: []string{"Sorry spengler, crash is on fire."},
+			wantMessage: []msgThread{{"Sorry spengler, crash is on fire.", "5.5"}},
 			wantErr:     "oops",
 		},
 		{
 			name: "a command with bad reader",
 			message: &slack.MessageEvent{
 				Msg: slack.Msg{
-					Text:    "?command y0",
-					User:    "Xspengler",
-					Channel: "Xgeneral",
+					Text:            "?command y0",
+					User:            "Xspengler",
+					Channel:         "Xgeneral",
+					ThreadTimestamp: "6.6",
 				},
 			},
 			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
 				m.On("Run", "command", "spengler", "general", "y0").Return(badReader{}, nil).Once()
 			},
-			wantMessage: []string{"Sorry spengler, command exploded or something."},
+			wantMessage: []msgThread{{"Sorry spengler, command exploded or something.", "6.6"}},
 			wantErr:     "failed to read output from command: I'm bad",
+		},
+		{
+			name: "a command in a thread",
+			message: &slack.MessageEvent{
+				Msg: slack.Msg{
+					Text:            "?command y0",
+					User:            "Xspengler",
+					Channel:         "Xgeneral",
+					ThreadTimestamp: "2.2",
+				},
+			},
+			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
+				cmdReader := c(bytes.NewReader([]byte("computer says yes")))
+				m.On("Run", "command", "spengler", "general", "y0").Return(cmdReader, nil).Once()
+			},
+			wantMessage: []msgThread{{"computer says yes", "2.2"}},
+			shouldClose: true,
 		},
 	}
 
@@ -291,8 +315,8 @@ func TestSMIB_handleMessage(t *testing.T) {
 
 			t.Log(testServer.GetSeenInboundMessages())
 			for _, msg := range tt.wantMessage {
-				assert.True(t, sawTypingMessage(testServer), "Typing message not sent")
-				assert.True(t, testServer.SawMessage(msg), "Message '%s' not seen", msg)
+				sawTypingMessage(t, testServer)
+				sawMessage(t, testServer, msg.text, msg.threadTS)
 			}
 			if len(tt.wantMessage) < 1 {
 				assert.Empty(t, testServer.GetSeenInboundMessages())
@@ -302,7 +326,7 @@ func TestSMIB_handleMessage(t *testing.T) {
 	}
 }
 
-func sawTypingMessage(server *slacktest.Server) bool {
+func sawTypingMessage(t *testing.T, server *slacktest.Server) bool {
 	for _, msg := range server.GetSeenInboundMessages() {
 		typing := slack.UserTypingEvent{}
 		if err := json.Unmarshal([]byte(msg), &typing); err != nil {
@@ -312,6 +336,32 @@ func sawTypingMessage(server *slacktest.Server) bool {
 			continue
 		}
 		return true
+	}
+	t.Error("Typing message not seen")
+	return false
+}
+
+func sawMessage(t *testing.T, server *slacktest.Server, expected, thread string) bool {
+	for _, msg := range server.GetSeenInboundMessages() {
+		message := slack.MessageEvent{}
+		if err := json.Unmarshal([]byte(msg), &message); err != nil {
+			continue
+		}
+		if message.Type != "message" {
+			continue
+		}
+		if message.Text != expected {
+			continue
+		}
+		if message.ThreadTimestamp != thread {
+			continue
+		}
+		return true
+	}
+	if thread == "" {
+		t.Errorf("Message '%s' not seen.", expected)
+	} else {
+		t.Errorf("Message '%s' not seen in thread '%s", expected, thread)
 	}
 	return false
 }

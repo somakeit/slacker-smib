@@ -81,6 +81,11 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 		return fmt.Errorf("failed to get channel info: %s", err)
 	}
 
+	var msgOpts []slack.RTMsgOption
+	if message.ThreadTimestamp != "" {
+		msgOpts = append(msgOpts, slack.RTMsgOptionTS(message.ThreadTimestamp))
+	}
+
 	output, err := s.cmd.Run(
 		cmd,
 		user.Name,
@@ -94,18 +99,21 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 		s.slack.SendMessage(s.slack.NewOutgoingMessage(
 			fmt.Sprintf("Sorry %s, I don't have a %s command.", user.Name, cmd),
 			message.Channel,
+			msgOpts...,
 		))
 		return nil
 	case command.NotUniqueError:
 		s.slack.SendMessage(s.slack.NewOutgoingMessage(
 			fmt.Sprintf("Sorry %s, that wasn't unique, try one of: %s", user.Name, err.GetCommands()),
 			message.Channel,
+			msgOpts...,
 		))
 		return nil
 	default:
 		s.slack.SendMessage(s.slack.NewOutgoingMessage(
 			fmt.Sprintf("Sorry %s, %s is on fire.", user.Name, cmd),
 			message.Channel,
+			msgOpts...,
 		))
 		return err
 	}
@@ -114,7 +122,11 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 	for {
 		out, err := reader.ReadString('\n')
 		if len(out) > 0 {
-			s.slack.SendMessage(s.slack.NewOutgoingMessage(out, message.Channel))
+			s.slack.SendMessage(s.slack.NewOutgoingMessage(
+				out,
+				message.Channel,
+				msgOpts...,
+			))
 		}
 		switch err {
 		case nil:
@@ -126,6 +138,7 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 			s.slack.SendMessage(s.slack.NewOutgoingMessage(
 				fmt.Sprintf("Sorry %s, %s exploded or something.", user.Name, cmd),
 				message.Channel,
+				msgOpts...,
 			))
 			return fmt.Errorf("failed to read output from command: %s", err)
 		}
