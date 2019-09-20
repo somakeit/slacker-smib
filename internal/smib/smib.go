@@ -44,6 +44,8 @@ func (s *SMIB) ListenAndRobot() error {
 					log.Print("Faled to handle message: ", err)
 				}
 			}()
+		case *slack.ConnectedEvent:
+			log.Println("SMIB connected")
 		}
 	}
 
