@@ -21,8 +21,8 @@ type mockCommand struct {
 	mock.Mock
 }
 
-func (m *mockCommand) Run(cmd, user, channel, args string) (io.ReadCloser, error) {
-	mArgs := m.Called(cmd, user, channel, args)
+func (m *mockCommand) Run(cmd, user, userDisplay, channel, args string) (io.ReadCloser, error) {
+	mArgs := m.Called(cmd, user, userDisplay, channel, args)
 	return mArgs.Get(0).(io.ReadCloser), mArgs.Error(1)
 }
 
@@ -78,7 +78,7 @@ func TestListenAndRobot(t *testing.T) {
 	mockCmd := &mockCommand{}
 	mockCmd.Test(t)
 	empty := ioutil.NopCloser(bytes.NewReader(nil))
-	mockCmd.On("Run", "command", "<@Xspengler>", "general", "arg arg").Return(empty, errors.New("woteva")).Once()
+	mockCmd.On("Run", "command", "<@Xspengler>", "spengler", "general", "arg arg").Return(empty, errors.New("woteva")).Once()
 	defer mockCmd.AssertExpectations(t)
 
 	smib := SMIB{
@@ -157,7 +157,7 @@ func TestSMIB_handleMessage(t *testing.T) {
 			},
 			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
 				cmdReader := c(bytes.NewReader([]byte("computer says yes")))
-				m.On("Run", "command", "<@Xspengler>", "general", "y0").Return(cmdReader, nil).Once()
+				m.On("Run", "command", "<@Xspengler>", "spengler", "general", "y0").Return(cmdReader, nil).Once()
 			},
 			wantMessage: []msgThread{{"computer says yes", ""}},
 			shouldClose: true,
@@ -183,7 +183,7 @@ func TestSMIB_handleMessage(t *testing.T) {
 			},
 			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
 				cmdReader := c(bytes.NewReader([]byte("3\n2\n1\n")))
-				m.On("Run", "countdown", "<@Xspengler>", "general", "").Return(cmdReader, nil).Once()
+				m.On("Run", "countdown", "<@Xspengler>", "spengler", "general", "").Return(cmdReader, nil).Once()
 			},
 			wantMessage: []msgThread{{"3\n", ""}, {"2\n", ""}, {"1\n", ""}},
 			shouldClose: true,
@@ -200,7 +200,7 @@ func TestSMIB_handleMessage(t *testing.T) {
 			},
 			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
 				empty := c(bytes.NewReader(nil))
-				m.On("Run", "badcommand", "<@Xspengler>", "general", "").Return(empty, command.NotFoundError("")).Once()
+				m.On("Run", "badcommand", "<@Xspengler>", "spengler", "general", "").Return(empty, command.NotFoundError("")).Once()
 			},
 			wantMessage: []msgThread{{"Sorry <@Xspengler>, I don't have a badcommand command.", "3.3"}},
 		},
@@ -216,7 +216,7 @@ func TestSMIB_handleMessage(t *testing.T) {
 			},
 			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
 				empty := c(bytes.NewReader(nil))
-				m.On("Run", "c", "<@Xspengler>", "general", "").Return(
+				m.On("Run", "c", "<@Xspengler>", "spengler", "general", "").Return(
 					empty,
 					command.NotUniqueError{
 						Commands: []string{"commands", "countdown"},
@@ -237,7 +237,7 @@ func TestSMIB_handleMessage(t *testing.T) {
 			},
 			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
 				empty := c(bytes.NewReader(nil))
-				m.On("Run", "crash", "<@Xspengler>", "general", "").Return(empty, errors.New("oops")).Once()
+				m.On("Run", "crash", "<@Xspengler>", "spengler", "general", "").Return(empty, errors.New("oops")).Once()
 			},
 			wantMessage: []msgThread{{"Sorry <@Xspengler>, crash is on fire.", "5.5"}},
 			wantErr:     "oops",
@@ -253,7 +253,7 @@ func TestSMIB_handleMessage(t *testing.T) {
 				},
 			},
 			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
-				m.On("Run", "command", "<@Xspengler>", "general", "y0").Return(badReader{}, nil).Once()
+				m.On("Run", "command", "<@Xspengler>", "spengler", "general", "y0").Return(badReader{}, nil).Once()
 			},
 			wantMessage: []msgThread{{"Sorry <@Xspengler>, command exploded or something.", "6.6"}},
 			wantErr:     "failed to read output from command: I'm bad",
@@ -270,7 +270,7 @@ func TestSMIB_handleMessage(t *testing.T) {
 			},
 			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
 				cmdReader := c(bytes.NewReader([]byte("computer says yes")))
-				m.On("Run", "command", "<@Xspengler>", "general", "y0").Return(cmdReader, nil).Once()
+				m.On("Run", "command", "<@Xspengler>", "spengler", "general", "y0").Return(cmdReader, nil).Once()
 			},
 			wantMessage: []msgThread{{"computer says yes", "2.2"}},
 			shouldClose: true,
@@ -286,7 +286,7 @@ func TestSMIB_handleMessage(t *testing.T) {
 			},
 			primeCommand: func(t *testing.T, m *mockCommand, c func(io.Reader) io.ReadCloser) {
 				cmdReader := c(bytes.NewReader([]byte("computer says yes")))
-				m.On("Run", "command", "<@Xspengler>", "null", "y0").Return(cmdReader, nil).Once()
+				m.On("Run", "command", "<@Xspengler>", "spengler", "null", "y0").Return(cmdReader, nil).Once()
 			},
 			wantMessage: []msgThread{{"computer says yes", ""}},
 			shouldClose: true,

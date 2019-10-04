@@ -29,99 +29,119 @@ func mustAbs(path string) string {
 
 func TestCommand_Run(t *testing.T) {
 	tests := []struct {
-		name       string
-		commandDir string
-		command    string
-		user       string
-		channel    string
-		args       string
-		want       []byte
-		wantErr    error
+		name              string
+		commandDir        string
+		command           string
+		user, userDisplay string
+		channel           string
+		args              string
+		want              []byte
+		wantErr           error
 	}{
 		{
-			name:       "invalid command dir",
-			commandDir: "notadir",
-			command:    "lol",
-			user:       "bob",
-			channel:    "general",
-			want:       []byte{},
-			wantErr:    errors.New("error listing command directory 'notadir':"),
+			name:        "invalid command dir",
+			commandDir:  "notadir",
+			command:     "lol",
+			user:        "<@Xbob>",
+			userDisplay: "bob",
+			channel:     "general",
+			want:        []byte{},
+			wantErr:     errors.New("error listing command directory 'notadir':"),
 		},
 		{
-			name:       "command not found",
-			commandDir: mustAbs("fixtures"),
-			command:    "notacmd",
-			user:       "bob",
-			channel:    "general",
-			want:       []byte{},
-			wantErr:    NotFoundError("command 'notacmd' not found"),
+			name:        "command not found",
+			commandDir:  mustAbs("fixtures"),
+			command:     "notacmd",
+			user:        "<@Xbob>",
+			userDisplay: "bob",
+			channel:     "general",
+			want:        []byte{},
+			wantErr:     NotFoundError("command 'notacmd' not found"),
 		},
 		{
-			name:       "command not unique",
-			commandDir: mustAbs("fixtures"),
-			command:    "command",
-			user:       "bob",
-			channel:    "general",
-			want:       []byte{},
+			name:        "command not unique",
+			commandDir:  mustAbs("fixtures"),
+			command:     "command",
+			user:        "<@Xbob>",
+			userDisplay: "bob",
+			channel:     "general",
+			want:        []byte{},
 			wantErr: NotUniqueError{
 				text:     "command 'command' was not unique",
 				Commands: []string{"commandone.sh", "commandtwo.sh"},
 			},
 		},
 		{
-			name:       "run a command",
-			commandDir: mustAbs("fixtures"),
-			command:    "commandone",
-			user:       "bob",
-			channel:    "general",
-			want:       []byte("command one\n"),
-			wantErr:    nil,
+			name:        "run a command",
+			commandDir:  mustAbs("fixtures"),
+			command:     "commandone",
+			user:        "<@Xbob>",
+			userDisplay: "bob",
+			channel:     "general",
+			want:        []byte("command one\n"),
+			wantErr:     nil,
 		},
 		{
-			name:       "run a unique command",
-			commandDir: mustAbs("fixtures"),
-			command:    "commandt",
-			user:       "bob",
-			channel:    "general",
-			want:       []byte("command two\n"),
-			wantErr:    nil,
+			name:        "run a unique command",
+			commandDir:  mustAbs("fixtures"),
+			command:     "commandt",
+			user:        "<@Xbob>",
+			userDisplay: "bob",
+			channel:     "general",
+			want:        []byte("command two\n"),
+			wantErr:     nil,
 		},
 		{
-			name:       "run a non-unique command explicitly",
-			commandDir: mustAbs("fixtures"),
-			command:    "sub",
-			user:       "bob",
-			channel:    "general",
-			want:       []byte("We all live in a yellow\n"),
-			wantErr:    nil,
+			name:        "run a non-unique command explicitly",
+			commandDir:  mustAbs("fixtures"),
+			command:     "sub",
+			user:        "<@Xbob>",
+			userDisplay: "bob",
+			channel:     "general",
+			want:        []byte("We all live in a yellow\n"),
+			wantErr:     nil,
 		},
 		{
-			name:       "run the readme",
-			commandDir: mustAbs("fixtures"),
-			command:    "README",
-			user:       "bob",
-			channel:    "general",
-			want:       []byte{},
-			wantErr:    fmt.Errorf("failed to start command 'README.md':"),
+			name:        "run the readme",
+			commandDir:  mustAbs("fixtures"),
+			command:     "README",
+			user:        "<@Xbob>",
+			userDisplay: "bob",
+			channel:     "general",
+			want:        []byte{},
+			wantErr:     fmt.Errorf("failed to start command 'README.md':"),
 		},
 		{
-			name:       "run a failing command",
-			commandDir: mustAbs("fixtures"),
-			command:    "fail",
-			user:       "bob",
-			channel:    "general",
-			want:       []byte("i bad\n"),
-			wantErr:    nil,
+			name:        "run a failing command",
+			commandDir:  mustAbs("fixtures"),
+			command:     "fail",
+			user:        "<@Xbob>",
+			userDisplay: "bob",
+			channel:     "general",
+			want:        []byte("i bad\n"),
+			wantErr:     nil,
 		},
 		{
-			name:       "run a command with args",
-			commandDir: mustAbs("fixtures"),
-			command:    "debug",
-			user:       "bob",
-			channel:    "general",
-			args:       "some args",
-			want:       []byte("bob, User: [bob] Channel: [general] Sender: [bob] Args: [some args]\n"),
-			wantErr:    nil,
+			name:        "run a command with args",
+			commandDir:  mustAbs("fixtures"),
+			command:     "debu",
+			user:        "<@Xbob>",
+			userDisplay: "bob",
+			channel:     "general",
+			args:        "some args",
+			want:        []byte("<@Xbob>, User: [<@Xbob>] Channel: [general] Sender: [general] Args: [some args] Command: [debu] DisplayUser: [bob]\n"),
+			wantErr:     nil,
+		},
+		{
+			name:        "run a command with args from a dm",
+			commandDir:  mustAbs("fixtures"),
+			command:     "debu",
+			user:        "<@Xbob>",
+			userDisplay: "bob",
+			channel:     "null",
+			args:        "some args",
+			want:        []byte("<@Xbob>, User: [<@Xbob>] Channel: [null] Sender: [<@Xbob>] Args: [some args] Command: [debu] DisplayUser: [bob]\n"),
+			wantErr:     nil,
 		},
 	}
 
@@ -131,7 +151,7 @@ func TestCommand_Run(t *testing.T) {
 				commandDir: tt.commandDir,
 			}
 
-			r, outErr := c.Run(tt.command, tt.user, tt.channel, tt.args)
+			r, outErr := c.Run(tt.command, tt.user, tt.userDisplay, tt.channel, tt.args)
 
 			switch wantErr := tt.wantErr.(type) {
 			case nil:

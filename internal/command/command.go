@@ -26,7 +26,8 @@ func New(commandDir string) *Command {
 
 // Run takes a command and if it exists in the command diractory and is valid, runs it and
 // streams the output. The caller must close the output ReadCloser if err was nil.
-func (c *Command) Run(command, user, channel, args string) (io.ReadCloser, error) {
+// User is the slack syntax for mentioning the user, userDisplay is the user's short display name.
+func (c *Command) Run(command, user, userDisplay, channel, args string) (io.ReadCloser, error) {
 	files, err := ioutil.ReadDir(c.commandDir)
 	if err != nil {
 		return nil, fmt.Errorf("error listing command directory '%s': %s", c.commandDir, err)
@@ -60,8 +61,21 @@ func (c *Command) Run(command, user, channel, args string) (io.ReadCloser, error
 		}
 	}
 
-	log.Print(fmt.Sprintf("Command '%s' run in '%s' by '%s' with args '%s'", commands[0], channel, user, args))
-	cmd := exec.Command(filepath.Join(c.commandDir, commands[0]), user, channel, user, args)
+	sender := channel
+	if sender == "null" {
+		sender = user
+	}
+
+	log.Print(fmt.Sprintf("Command '%s' run in '%s' by '%s' with args '%s'", commands[0], channel, userDisplay, args))
+	cmd := exec.Command(
+		filepath.Join(c.commandDir, commands[0]),
+		user,
+		channel,
+		sender,
+		args,
+		command,
+		userDisplay,
+	)
 	cmd.Dir = c.commandDir
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

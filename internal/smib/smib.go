@@ -13,7 +13,7 @@ import (
 )
 
 type commandRunner interface {
-	Run(cmd, user, channel, args string) (io.ReadCloser, error)
+	Run(cmd, user, userDisplay, channel, args string) (io.ReadCloser, error)
 }
 
 // SMIB is the bot
@@ -70,6 +70,11 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 
 	s.slack.SendMessage(s.slack.NewTypingMessage(message.Channel))
 
+	user, err := s.slack.GetUserInfo(message.User)
+	if err != nil {
+		return fmt.Errorf("failed to get user info: %s", err)
+	}
+
 	userMention := "<@" + message.User + ">"
 
 	channelName := "null" // If GetChannelInfo fails, we're probablt in an IM or Group
@@ -86,6 +91,7 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 	output, err := s.cmd.Run(
 		cmd,
 		userMention,
+		user.Name,
 		channelName,
 		args,
 	)
