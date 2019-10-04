@@ -74,6 +74,7 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 	if err != nil {
 		return fmt.Errorf("failed to get user info: %s", err)
 	}
+	userName := "@" + user.Name
 
 	channelName := "null" // If GetChannelInfo fails, we're probablt in an IM or Group
 	channel, err := s.slack.GetChannelInfo(message.Channel)
@@ -88,7 +89,7 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 
 	output, err := s.cmd.Run(
 		cmd,
-		user.Name,
+		userName,
 		channelName,
 		args,
 	)
@@ -97,21 +98,21 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 		break
 	case command.NotFoundError:
 		s.slack.SendMessage(s.slack.NewOutgoingMessage(
-			fmt.Sprintf("Sorry %s, I don't have a %s command.", user.Name, cmd),
+			fmt.Sprintf("Sorry %s, I don't have a %s command.", userName, cmd),
 			message.Channel,
 			msgOpts...,
 		))
 		return nil
 	case command.NotUniqueError:
 		s.slack.SendMessage(s.slack.NewOutgoingMessage(
-			fmt.Sprintf("Sorry %s, that wasn't unique, try one of: %s", user.Name, err.GetCommands()),
+			fmt.Sprintf("Sorry %s, that wasn't unique, try one of: %s", userName, err.GetCommands()),
 			message.Channel,
 			msgOpts...,
 		))
 		return nil
 	default:
 		s.slack.SendMessage(s.slack.NewOutgoingMessage(
-			fmt.Sprintf("Sorry %s, %s is on fire.", user.Name, cmd),
+			fmt.Sprintf("Sorry %s, %s is on fire.", userName, cmd),
 			message.Channel,
 			msgOpts...,
 		))
@@ -136,7 +137,7 @@ func (s *SMIB) handleMessage(message *slack.MessageEvent) error {
 			return nil
 		default:
 			s.slack.SendMessage(s.slack.NewOutgoingMessage(
-				fmt.Sprintf("Sorry %s, %s exploded or something.", user.Name, cmd),
+				fmt.Sprintf("Sorry %s, %s exploded or something.", userName, cmd),
 				message.Channel,
 				msgOpts...,
 			))
