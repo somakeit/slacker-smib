@@ -77,8 +77,8 @@ func TestListenAndRobot(t *testing.T) {
 
 	mockCmd := &mockCommand{}
 	mockCmd.Test(t)
-	empty := ioutil.NopCloser(bytes.NewReader(nil))
-	mockCmd.On("Run", "command", "<@Xspengler>", "spengler", "general", "arg arg").Return(empty, errors.New("woteva")).Once()
+	reply := ioutil.NopCloser(bytes.NewReader([]byte("woteva")))
+	mockCmd.On("Run", "command", "<@Xspengler>", "spengler", "general", "arg arg").Return(reply, nil).Once()
 	defer mockCmd.AssertExpectations(t)
 
 	smib := SMIB{
@@ -104,11 +104,13 @@ func TestListenAndRobot(t *testing.T) {
 		},
 	}
 
-	// allow time to connect an process the message before closing the channel
-	time.Sleep(time.Millisecond * 100)
+	assert.Eventually(t, func() bool {
+		return testServer.SawMessage("woteva")
+	}, time.Second, time.Millisecond)
+	t.Log(testServer.GetSeenInboundMessages())
 
-	close(testRTM.IncomingEvents)
 	testServer.Stop()
+	close(testRTM.IncomingEvents)
 	<-done
 	assert.EqualError(t, err, "IncomingEvents channel was closed")
 }
